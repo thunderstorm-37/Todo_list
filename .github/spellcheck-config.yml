@@ -1,5 +1,4 @@
-
-  matrix:
+matrix:
   - name: Markdown and TeX
     aspell:
       lang: en
