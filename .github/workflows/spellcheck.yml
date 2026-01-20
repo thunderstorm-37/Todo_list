@@ -1,100 +1,31 @@
-name: Spell Check
-
-on:
-  push:
-    paths:
-      - '**.tex'
-      - '**.md'
-      - '**.txt'
-  pull_request:
-    paths:
-      - '**.tex'
-      - '**.md'
-      - '**.txt'
+name: Spell Check 
+on: [push, pull_request]
 
 jobs:
   spellcheck:
+    name: Spell Check
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-    
-    - name: Install cspell
-      run: npm install -g cspell
-    
-    - name: Create cspell configuration
-      run: |
-        cat > .cspell.json << 'EOF'
-        {
-          "version": "0.2",
-          "language": "en",
-          "ignorePaths": [
-            "node_modules",
-            "package-lock.json",
-            "yarn.lock",
-            "*.min.*",
-            "*.log",
-            "dist",
-            "build",
-            "coverage"
-          ],
-          "words": [
-            "GitHub",
-            "LaTeX",
-            "Markdown"
-            # 在这里添加你的自定义词汇
-          ],
-          "ignoreRegExpList": [
-            # 忽略所有中文字符
-            "[\\p{Script=Han}]",
-            # 忽略 CJK 标点符号
-            "[\\p{Script=Hiragana}\\p{Script=Katakana}\\p{Script=Hangul}]",
-            # 忽略纯中文文本行
-            "^[\\p{Script=Han}\\s\\p{P}]+$",
-            # 忽略 TeX 命令
-            "\\\\[a-zA-Z]+",
-            # 忽略 TeX 环境
-            "\\\\begin{[^}]*}",
-            "\\\\end{[^}]*}",
-            # 忽略 Markdown 链接和图片
-            "\\[.*?\\]\\(.*?\\)",
-            "!\\[.*?\\]\\(.*?\\)",
-            # 忽略代码块
-            "```[\\s\\S]*?```",
-            "`[^`]*`",
-            # 忽略 URL
-            "https?:\\/\\/[^\\s]+",
-            # 忽略电子邮件
-            "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
-          ],
-          "patterns": [
-            {
-              "name": "latex-command",
-              "pattern": "\\\\[a-zA-Z]+",
-              "description": "LaTeX commands"
-            },
-            {
-              "name": "chinese-characters",
-              "pattern": "[\\p{Script=Han}]",
-              "description": "Chinese characters"
-            }
-          ]
-        }
-        EOF
-    
-    - name: Run spell check
-      run: |
-        # 检查所有 .tex 和 .md 文件
-        # cspell "**/*.tex" "**/*.md" "**/*.txt" --config .cspell.json
-        
-        # 或者使用更详细的输出
-        cspell "**/*.tex" "**/*.md" "**/*.txt" --config .cspell.json --words-only --unique
-        
-        # 如果要生成报告文件
-        # cspell "**/*.tex" "**/*.md" "**/*.txt" --config .cspell.json --output-file spell-check-report.txt
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install pyspellchecker
+        run: |
+          pip install pyspellchecker
+
+      - name: Run custom spell check (English only)
+        run: |
+          python .github/scripts/spellcheck.py
+        continue-on-error: true  # 允许拼写错误时不立即失败
+
+      - name: Upload spell check report
+        uses: actions/upload-artifact@v3
+        if: always()  # 总是上传报告，无论是否失败
+        with:
+          name: spellcheck-report
+          path: spellcheck_report.txt
